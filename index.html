@@ -892,6 +892,10 @@
                 this.bgImage = new Image();
                 this.bgImage.src = 'assets/bg_2d.jpg';
                 
+                // Load custom 2D ground
+                this.groundImage = new Image();
+                this.groundImage.src = 'assets/ground_2d.png';
+                
                 window.addEventListener('keydown', e => this.handleKey(e, true));
                 window.addEventListener('keyup', e => this.handleKey(e, false));
 
@@ -1035,10 +1039,23 @@
 
                 ctx.save(); ctx.translate(-this.cameraX, 0);
 
+                let groundPattern = null;
+                if (this.groundImage && this.groundImage.complete) {
+                    groundPattern = ctx.createPattern(this.groundImage, 'repeat');
+                }
+
                 for (let p of this.platforms) {
-                    ctx.fillStyle = "#8b5a2b"; ctx.fillRect(p.x, p.y, p.w, p.h);
-                    ctx.fillStyle = "#4ade80"; ctx.fillRect(p.x, p.y, p.w, Math.min(20, p.h));
-                    ctx.fillStyle = "#16a34a"; ctx.fillRect(p.x, p.y + 20, p.w, 6);
+                    if (groundPattern) {
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.fillStyle = groundPattern;
+                        ctx.fillRect(0, 0, p.w, p.h);
+                        ctx.restore();
+                    } else {
+                        ctx.fillStyle = "#8b5a2b"; ctx.fillRect(p.x, p.y, p.w, p.h);
+                        ctx.fillStyle = "#4ade80"; ctx.fillRect(p.x, p.y, p.w, Math.min(20, p.h));
+                        ctx.fillStyle = "#16a34a"; ctx.fillRect(p.x, p.y + 20, p.w, 6);
+                    }
                 }
 
                 for (let c of this.coins) {
