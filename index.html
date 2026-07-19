@@ -323,6 +323,11 @@
     <!-- 2D Canvas Layer -->
     <canvas id="gameCanvas" aria-label="2D Game Canvas" tabindex="0"></canvas>
     
+    <!-- 2D GIF Overlay -->
+    <div id="gifContainer2D" class="absolute pointer-events-none hidden" style="z-index: 5; transform-origin: center;">
+        <img id="playerGifOverlay" class="w-full h-full object-contain drop-shadow-md" alt="">
+    </div>
+    
     <!-- 3D WebGL Layer -->
     <div id="game3DContainer" aria-label="3D Game View" tabindex="0"></div>
 
@@ -908,9 +913,16 @@
             },
             start() {
                 if(!this.ctx) this.init();
+                
+                const gifContainer = document.getElementById('gifContainer2D');
                 if (App.playerData.avatarType === 'image') {
-                    this.playerImage = new Image(); this.playerImage.src = App.playerData.avatar;
-                } else this.playerImage = null;
+                    this.playerImage = true; // Flag for image mode
+                    document.getElementById('playerGifOverlay').src = App.playerData.avatar;
+                    gifContainer.classList.remove('hidden');
+                } else {
+                    this.playerImage = null;
+                    gifContainer.classList.add('hidden');
+                }
 
                 // Hitbox sizing: 80x80. speed: 5.5, jumpPower: -22
                 this.player = { x: 100, y: this.height - 250, w: 80, h: 80, vx: 0, vy: 0, speed: 5.0, jumpPower: -24, grounded: false, facingRight: true, frame: 0 };
@@ -1045,8 +1057,14 @@
                     if (!p.facingRight) scaleX *= -1; 
                     ctx.scale(scaleX, scaleY);
 
-                    if (App.playerData.avatarType === 'image' && this.playerImage && this.playerImage.complete) {
-                        ctx.drawImage(this.playerImage, -p.w/2, -p.h/2, p.w, p.h);
+                    if (App.playerData.avatarType === 'image' && this.playerImage) {
+                        // Position DOM overlay instead of drawing on canvas
+                        const gifContainer = document.getElementById('gifContainer2D');
+                        gifContainer.style.width = p.w + 'px';
+                        gifContainer.style.height = p.h + 'px';
+                        gifContainer.style.left = (p.x - this.cameraX) + 'px';
+                        gifContainer.style.top = p.y + 'px';
+                        gifContainer.style.transform = `scale(${scaleX}, ${scaleY})`;
                     } else {
                         // Emoji font size relative to hitbox
                         ctx.font = `${p.h * 0.9}px var(--font-family)`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(App.playerData.avatar, 0, 5); 
@@ -1291,6 +1309,7 @@
 
             start() {
                 this.init();
+                document.getElementById('gifContainer2D').classList.add('hidden'); // Hide 2D overlay if switching to 3D
                 if(this.player) this.scene.remove(this.player);
                 this.createPlayerAvatar();
                 this.generateWorld();
