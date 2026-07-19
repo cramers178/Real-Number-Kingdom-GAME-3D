@@ -869,7 +869,7 @@
             width: 0, height: 0, cameraX: 0,
             playerImage: null, keys: { left: false, right: false, up: false },
             
-            gravity: 1.2, friction: 0.8, coyoteTimer: 0,
+            gravity: 1.6, friction: 0.8, coyoteTimer: 0,
             platforms: [], doors: [], coins: [], bgObjects: [], player: null,
 
             init() {
@@ -902,7 +902,7 @@
                 } else this.playerImage = null;
 
                 // Hitbox sizing: 80x80. speed: 5.5, jumpPower: -22
-                this.player = { x: 100, y: this.height - 250, w: 80, h: 80, vx: 0, vy: 0, speed: 5.5, jumpPower: -22, grounded: false, facingRight: true, frame: 0 };
+                this.player = { x: 100, y: this.height - 250, w: 80, h: 80, vx: 0, vy: 0, speed: 5.0, jumpPower: -24, grounded: false, facingRight: true, frame: 0 };
                 this.cameraX = 0; this.generateLevel();
                 requestAnimationFrame(() => this.loop());
             },
@@ -1054,7 +1054,7 @@
             container: document.getElementById('game3DContainer'),
             scene: null, camera: null, renderer: null, player: null,
             keys: { up: false, down: false, left: false, right: false, space: false },
-            playerVy: 0, gravity: 0.8, jumpPower: 12, speed: 1.2,
+            playerVy: 0, gravity: 0.8, jumpPower: 12, speed: 1.5,
             qBlocks: [], isSetup: false,
             
             enemies: [], invulnerableTimer: 0,
