@@ -887,6 +887,11 @@
             init() {
                 this.ctx = this.canvas.getContext('2d');
                 this.resize(); window.addEventListener('resize', () => this.resize());
+                
+                // Load custom 2D background
+                this.bgImage = new Image();
+                this.bgImage.src = 'assets/bg_2d.jpg';
+                
                 window.addEventListener('keydown', e => this.handleKey(e, true));
                 window.addEventListener('keyup', e => this.handleKey(e, false));
 
@@ -944,14 +949,12 @@
                     }
                     const platW = 500 + Math.random() * 400;
                     this.platforms.push({ x: currX, y: baseY, w: platW, h: 400 });
-                    if(i % 2 === 0) this.bgObjects.push({ x: currX + 150, y: baseY, type: 'tree' });
                     this.doors.push({ x: currX + platW/2 - 30, y: baseY - 140, w: 60, h: 60, active: true, qNum: i + 1, isFinish: false });
                     currX += platW;
                 }
                 currX += 200;
                 this.platforms.push({ x: currX, y: baseY, w: 1000, h: 400 });
                 this.doors.push({ x: currX + 300, y: baseY - 160, w: 120, h: 160, active: true, isFinish: true });
-                this.bgObjects.push({ x: currX + 500, y: baseY, type: 'castle' });
             },
             update() {
                 if (App.state !== 'playing' || App.mode !== '2D') return;
@@ -1011,16 +1014,26 @@
             checkOverlap: (r1, r2) => (r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y),
             draw() {
                 const ctx = this.ctx;
-                ctx.fillStyle = ctx.createLinearGradient(0, 0, 0, this.height);
-                ctx.fillStyle.addColorStop(0, "#bae6fd"); ctx.fillStyle.addColorStop(1, "#fef3c7"); 
-                ctx.fillRect(0, 0, this.width, this.height);
+                
+                // Draw parallax background
+                if (this.bgImage && this.bgImage.complete) {
+                    const scale = this.height / this.bgImage.height;
+                    const drawWidth = this.bgImage.width * scale;
+                    
+                    // Parallax factor 0.3
+                    let startX = -(this.cameraX * 0.3) % drawWidth;
+                    if (startX > 0) startX -= drawWidth;
+                    
+                    for (let x = startX; x < this.width; x += drawWidth) {
+                        ctx.drawImage(this.bgImage, x, 0, drawWidth, this.height);
+                    }
+                } else {
+                    ctx.fillStyle = ctx.createLinearGradient(0, 0, 0, this.height);
+                    ctx.fillStyle.addColorStop(0, "#bae6fd"); ctx.fillStyle.addColorStop(1, "#fef3c7"); 
+                    ctx.fillRect(0, 0, this.width, this.height);
+                }
 
                 ctx.save(); ctx.translate(-this.cameraX, 0);
-
-                for(let bg of this.bgObjects) {
-                    ctx.font = bg.type === 'tree' ? "70px Arial" : "120px Arial";
-                    ctx.fillText(bg.type === 'tree' ? "🌳" : "🏰", bg.x, bg.y - 10);
-                }
 
                 for (let p of this.platforms) {
                     ctx.fillStyle = "#8b5a2b"; ctx.fillRect(p.x, p.y, p.w, p.h);
