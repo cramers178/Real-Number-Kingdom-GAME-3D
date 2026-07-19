@@ -1,0 +1,117 @@
+// กำหนด ID ของ Google Sheet ของคุณ
+const SHEET_ID = '15aHVSuaCSW__sKjeSBjYUKIlxyYQzf0fYAuUFnhOmks';
+const SHEET_NAME = 'Leaderboard'; 
+
+// ฟังก์ชันสำหรับเตรียมความพร้อมฐานข้อมูล (รันครั้งแรก 1 ครั้ง)
+function setupDatabase() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  
+  // 1. ถ้ายังไม่มี Sheet ที่ชื่อ Leaderboard ให้สร้างใหม่
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+  }
+  
+  // 2. ตรวจสอบว่ามีหัวตารางหรือยัง ถ้ายังไม่มีให้ใส่เข้าไป
+  if (sheet.getLastRow() === 0) {
+    // กำหนดหัวคอลัมน์
+    const headers = ['Date', 'No', 'Name', 'Avatar', 'Score', 'Correct', 'Wrong', 'Time'];
+    sheet.appendRow(headers);
+    
+    // จัดรูปแบบตารางให้สวยงาม
+    const headerRange = sheet.getRange("A1:H1");
+    headerRange.setBackground("#4ade80"); // สีพื้นหลังเขียว
+    headerRange.setFontColor("#ffffff");  // ตัวอักษรสีขาว
+    headerRange.setFontWeight("bold");    // ตัวหนา
+    headerRange.setHorizontalAlignment("center"); // จัดกึ่งกลาง
+    
+    // แช่แข็งแถวแรก (เมื่อเลื่อนลง หัวตารางจะยังอยู่)
+    sheet.setFrozenRows(1);
+    
+    // ปรับความกว้างคอลัมน์ให้อ่านง่าย
+    sheet.setColumnWidth(1, 160); // Date
+    sheet.setColumnWidth(3, 180); // Name
+    
+    Logger.log("✅ สร้าง Database 'Leaderboard' และหัวตารางสำเร็จ!");
+  } else {
+    Logger.log("ℹ️ มี Database 'Leaderboard' และข้อมูลอยู่แล้ว ไม่จำเป็นต้องสร้างใหม่");
+  }
+}
+
+// จัดการ HTTP GET Request (เมื่อเกมต้องการดึงข้อมูล Leaderboard)
+function doGet(e) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  
+  // ป้องกันกรณีแผ่นงานยังไม่ได้สร้าง
+  if (!sheet) {
+    return ContentService.createTextOutput(JSON.stringify([]))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const data = sheet.getDataRange().getValues();
+  
+  // ถ้ามีแค่หัวตาราง
+  if (data.length <= 1) {
+    return ContentService.createTextOutput(JSON.stringify([]))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const rows = data.slice(1);
+  let result = rows.map(row => {
+    return {
+      date: row[0],
+      no: row[1],
+      name: row[2],
+      avatar: row[3],
+      score: Number(row[4]) || 0,
+      correct: Number(row[5]) || 0,
+      wrong: Number(row[6]) || 0,
+      time: Number(row[7]) || 0
+    };
+  });
+
+  // เรียงลำดับคะแนนจากมากไปน้อย หากคะแนนเท่ากันเอาเวลาที่น้อยกว่าขึ้นก่อน
+  result.sort((a, b) => b.score - a.score || a.time - b.time);
+
+  // ส่งข้อมูลกลับเป็น JSON
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// จัดการ HTTP POST Request (เมื่อเกมส่งข้อมูลคะแนนมาบันทึก)
+function doPost(e) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName(SHEET_NAME);
+    
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEET_NAME);
+      sheet.appendRow(['Date', 'No', 'Name', 'Avatar', 'Score', 'Correct', 'Wrong', 'Time']);
+    }
+
+    // แปลงข้อมูล JSON ที่ส่งมาจากหน้า HTML
+    const data = JSON.parse(e.postData.contents);
+
+    // บันทึกข้อมูลลงแถวใหม่
+    sheet.appendRow([
+      data.date || new Date().toISOString(),
+      data.no || '',
+      data.name || 'ผู้เล่นนิรนาม',
+      data.avatar || '🤠',
+      data.score || 0,
+      data.correct || 0,
+      data.wrong || 0,
+      data.time || 0
+    ]);
+
+    // ตอบกลับหน้าเว็บว่าบันทึกสำเร็จ
+    return ContentService.createTextOutput(JSON.stringify({success: true, mode: 'cloud'}))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (error) {
+    // กรณีเกิดข้อผิดพลาด
+    return ContentService.createTextOutput(JSON.stringify({success: false, error: error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}

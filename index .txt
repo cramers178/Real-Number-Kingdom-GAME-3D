@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ผจญภัยอาณาจักรจำนวนจริง (Real Number Kingdom)</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Three.js for 3D Mode -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Load Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --font-family: 'Noto Sans Thai', sans-serif;
+            --color-primary: #4ade80; 
+            --color-primary-dark: #16a34a; 
+            --color-accent: #fb923c; 
+            --color-text-main: #334155; 
+            --color-text-muted: #64748b; 
+        }
+
+        body {
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            color: var(--color-text-main);
+            background: linear-gradient(135deg, #e0f2fe 0%, #fef3c7 100%); 
+        }
+
+        /* 2D Canvas */
+        canvas#gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 1;
+        }
+
+        /* 3D Container */
+        #game3DContainer {
+            display: none; 
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 1;
+        }
+
+        #uiLayer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        /* --- THEME: GLASSMORPHISM (For Game UI & HUD) --- */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            pointer-events: auto;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* GAME UI BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-family: var(--font-family);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            gap: 0.5rem;
+            border: none;
+            outline: none;
+            font-size: 0.9rem;
+            pointer-events: auto;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(22, 163, 74, 0.39);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(22, 163, 74, 0.5);
+        }
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--color-text-main);
+            border: 2px solid #cbd5e1;
+        }
+        .btn-outline:hover {
+            background: white;
+            border-color: var(--color-primary);
+            color: var(--color-primary-dark);
+        }
+        .btn-home {
+            background: rgba(255, 255, 255, 0.9);
+            color: #ef4444;
+            border: 2px solid #fca5a5;
+            padding: 0.25rem 0.5rem;
+            font-size: 1rem;
+        }
+        .btn-home:hover {
+            background: #fef2f2;
+            border-color: #ef4444;
+            transform: scale(1.05);
+        }
+
+        .choice-btn {
+            width: 100%;
+            text-align: left;
+            padding: 0.6rem 0.85rem;
+            border-radius: 0.75rem;
+            border: 2px solid #cbd5e1;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--color-text-main);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            pointer-events: auto;
+        }
+        .choice-btn:hover:not(:disabled) {
+            border-color: var(--color-primary);
+            background-color: #f0fdf4;
+            transform: translateX(4px);
+        }
+        .choice-btn.correct {
+            border-color: #22c55e;
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .choice-btn.wrong {
+            border-color: #ef4444;
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .choice-btn:disabled { cursor: not-allowed; }
+
+        .mobile-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--color-text-main);
+            pointer-events: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            user-select: none;
+        }
+        .mobile-btn:active {
+            background: rgba(255, 255, 255, 0.9);
+            transform: scale(0.95);
+        }
+
+        /* --- START SCREEN MINIMAL THEME (Isolated Scope) --- */
+        #startScreen {
+            background-image: url('https://img1.pic.in.th/images/ChatGPT-Image-19-..-2569-18_33_39.png') !important;
+            background-size: cover !important;
+            background-position: center !important;
+            background-color: #000000 !important; /* สีสำรองกรณีรูปโหลดยังไม่เสร็จ */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            color: #dee2e6 !important;
+        }
+        #startScreen .glass-panel {
+            background-color: rgba(0, 0, 0, 0.75) !important; /* ปรับให้โปร่งแสงเห็นพื้นหลัง */
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
+        }
+        #startScreen .glass-card {
+            background-color: rgba(33, 37, 41, 0.7) !important; /* ทำให้โปร่งแสงนิดหน่อยให้เข้ากับพื้นหลัง */
+            border: 1px solid rgba(52, 58, 64, 0.8) !important;
+            border-radius: 8px !important;
+            box-shadow: none !important;
+        }
+        #startScreen .btn-primary {
+            background-color: #007bff !important;
+            background-image: none !important;
+            color: #ffffff !important;
+            border-radius: 4px !important;
+            box-shadow: none !important;
+            border: none !important;
+            font-weight: 500 !important;
+            transition: background-color 0.2s, outline 0.2s !important;
+            font-family: inherit !important;
+        }
+        #startScreen .btn-primary:hover {
+            background-color: #0056b3 !important;
+            transform: none !important;
+        }
+        #startScreen .btn-primary:focus-visible,
+        #startScreen .btn-outline:focus-visible,
+        #startScreen .avatar-btn:focus-visible,
+        #startScreen .mode-btn:focus-visible,
+        #startScreen .input-game:focus-visible {
+            outline: 2px solid #007bff !important;
+            outline-offset: 2px !important;
+        }
+        #startScreen .btn-outline {
+            background-color: transparent !important;
+            color: #007bff !important;
+            border: 1px solid #007bff !important;
+            border-radius: 4px !important;
+            font-family: inherit !important;
+        }
+        #startScreen .btn-outline:hover {
+            background-color: #007bff !important;
+            color: #ffffff !important;
+        }
+        #startScreen .input-game {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background-color: #000000 !important;
+            color: #dee2e6 !important;
+            border: 1px solid #495057 !important;
+            border-radius: 4px !important;
+            font-family: inherit !important;
+            font-size: 0.9rem;
+            transition: border-color 0.2s !important;
+        }
+        #startScreen .input-game:focus {
+            border-color: #007bff !important;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
+            outline: none !important;
+        }
+        
+        #startScreen .avatar-btn, #startScreen .mode-btn {
+            background-color: #212529 !important;
+            border: 1px solid #495057 !important;
+            border-radius: 4px !important;
+            transition: all 0.2s !important;
+            color: #dee2e6;
+            cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        #startScreen .avatar-btn {
+            width: 50px; height: 50px; font-size: 1.5rem; overflow: hidden;
+        }
+        #startScreen .mode-btn {
+            padding: 0.5rem 1rem; font-size: 0.9rem; flex: 1; font-weight: 500;
+        }
+        #startScreen .avatar-btn:hover, #startScreen .mode-btn:hover {
+            border-color: #dee2e6 !important;
+        }
+        #startScreen .avatar-btn.selected, #startScreen .mode-btn.selected {
+            border-color: #007bff !important;
+            background-color: #007bff22 !important;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
+        }
+        #startScreen .mode-btn.selected {
+            color: #007bff !important;
+        }
+        
+        #startScreen .lb-item {
+            background-color: #212529;
+            border: 1px solid #343a40;
+            border-radius: 4px;
+            color: #dee2e6;
+        }
+        #startScreen .lb-item-name { color: #dee2e6; }
+        #startScreen .lb-item-score { color: #007bff; }
+        #startScreen .lb-item-sub { color: #adb5bd; }
+        
+        #startScreen h1, #startScreen h2, #startScreen p, #startScreen label, #startScreen span {
+            color: inherit;
+            text-shadow: none !important;
+            drop-shadow: none !important;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        #startScreen ::-webkit-scrollbar-track { background: #000; }
+        #startScreen ::-webkit-scrollbar-thumb { background: #495057; }
+        #startScreen ::-webkit-scrollbar-thumb:hover { background: #6c757d; }
+
+    </style>
+</head>
+<body>
+
+    <!-- 2D Canvas Layer -->
+    <canvas id="gameCanvas" aria-label="2D Game Canvas" tabindex="0"></canvas>
+    
+    <!-- 3D WebGL Layer -->
+    <div id="game3DContainer" aria-label="3D Game View" tabindex="0"></div>
+
+    <div id="uiLayer">
+        
+        <!-- HUD -->
+        <div id="hud" class="hidden w-full p-2 flex justify-between items-start pointer-events-none">
+            <!-- ซ้าย: โลโก้ โปรไฟล์และคะแนน -->
+            <div class="glass-panel px-3 py-2 flex flex-col gap-1 pointer-events-auto max-w-[220px]">
+                <div class="flex items-center gap-2 border-b border-gray-200/60 pb-1 mb-1 justify-between">
+                    <div class="flex items-center gap-2">
+                        <img src="https://img2.pic.in.th/-38e2292808221d0c.pngf" onerror="this.src='https://img2.pic.in.th/-38e2292808221d0c.png'" class="w-6 h-6 object-contain" alt="Logo">
+                        <span class="text-[10px] font-bold text-gray-700 leading-none">ผจญภัยอาณาจักร<br><span class="text-green-600">จำนวนจริง</span></span>
+                    </div>
+                    <button onclick="location.reload()" class="btn btn-home drop-shadow-sm" title="กลับหน้าแรก">🏠</button>
+                </div>
+                <div class="text-[11px] md:text-xs font-bold text-gray-800 flex items-center gap-2">
+                    <span id="hudAvatar" class="text-base w-6 h-6 flex items-center justify-center">🤠</span> 
+                    <span id="hudName" class="truncate max-w-[80px]">ผู้เล่น</span> 
+                    <span class="text-gray-500">(<span id="hudNo">-</span>)</span>
+                </div>
+                <div class="text-sm md:text-base font-extrabold text-orange-500 flex items-center gap-1.5">
+                    🎯 <span id="hudScore">0</span>
+                    <span id="hudMode" class="text-[9px] bg-gray-200 text-gray-600 px-1 rounded ml-auto">2D</span>
+                </div>
+            </div>
+            
+            <!-- ขวา: หัวใจ เวลา และด่าน -->
+            <div class="glass-panel px-3 py-2 flex flex-col items-end gap-0.5 pointer-events-auto">
+                <div class="text-sm tracking-widest drop-shadow-md" id="hudHearts">❤️❤️❤️</div>
+                <div class="text-[10px] md:text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                    ⏱️ <span id="hudTime">00:00</span>
+                </div>
+                <div class="text-[10px] md:text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                    🏰 <span id="hudProgress">0</span>/20
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Screen (Minimal Theme applied) -->
+        <div id="startScreen" class="absolute inset-0 flex items-center justify-center p-4 overflow-y-auto z-50 pointer-events-auto">
+            <div class="glass-panel p-4 md:p-6 max-w-3xl w-full flex flex-col md:flex-row gap-6 items-stretch">
+                
+                <!-- Left: Info & Form -->
+                <div class="flex-1 flex flex-col justify-center">
+                    <div class="text-center md:text-left mb-5 flex flex-col md:flex-row items-center md:items-start gap-4">
+                        <img src="https://img2.pic.in.th/-38e2292808221d0c.pngf" onerror="this.src='https://img2.pic.in.th/-38e2292808221d0c.png'" class="w-16 h-16 md:w-20 md:h-20 object-contain" alt="Logo">
+                        <div>
+                            <div class="inline-block px-2 py-1 rounded text-[12px] font-bold mb-2 border" style="background-color: #212529; border-color: #007bff; color: #007bff !important;">
+                                วิชาคณิตศาสตร์ ม.2
+                            </div>
+                            <h1 class="text-xl md:text-2xl font-bold mb-2 leading-tight">
+                                ผจญภัยอาณาจักร<span style="color: #007bff !important;">จำนวนจริง</span>
+                            </h1>
+                            <p class="text-sm" style="color: #adb5bd !important;">
+                                ออกเดินทางพิชิตอาณาจักรแห่งจำนวนจริง และรากที่ n ผ่านการผจญภัยสุดสนุก
+                            </p>
+                        </div>
+                    </div>
+
+                    <form id="playerForm" class="space-y-4 mb-5 glass-card p-4">
+                        <!-- เลือกโหมด -->
+                        <div>
+                            <label class="block text-sm font-semibold mb-1.5">โหมดการเล่น (Game Mode)</label>
+                            <div class="flex gap-2">
+                                <button type="button" class="mode-btn selected" data-mode="2D">👾 2D Platformer</button>
+                                <button type="button" class="mode-btn" data-mode="3D">🧊 3D Voxel</button>
+                            </div>
+                        </div>
+
+                        <!-- เลือกตัวละคร -->
+                        <div>
+                            <label class="block text-sm font-semibold mb-1.5">เลือกตัวละครของคุณ</label>
+                            <div class="flex flex-wrap gap-2" id="avatarSelection">
+                                <button type="button" class="avatar-btn selected" data-type="emoji" data-avatar="🤠">🤠</button>
+                                <button type="button" class="avatar-btn" data-type="emoji" data-avatar="🧑‍🚀">🧑‍🚀</button>
+                                <button type="button" class="avatar-btn" data-type="emoji" data-avatar="🦊">🦊</button>
+                                <button type="button" class="avatar-btn" data-type="emoji" data-avatar="🤖">🤖</button>
+                                <button type="button" class="avatar-btn p-1" data-type="image" data-avatar="https://img2.pic.in.th/--1b2bdd0825a84ac7d.gif" title="GIF Avatar">
+                                    <img src="https://img2.pic.in.th/--1b2bdd0825a84ac7d.gif" alt="GIF Avatar" class="w-full h-full object-contain rounded-sm">
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ฟอร์มข้อมูล -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                            <div>
+                                <label for="inputNo" class="block text-sm font-semibold mb-1">เลขที่นักเรียน</label>
+                                <input type="number" id="inputNo" required min="1" max="100" class="input-game" placeholder="ระบุเลขที่">
+                            </div>
+                            <div>
+                                <label for="inputName" class="block text-sm font-semibold mb-1">ชื่อ-สกุลผู้เรียน</label>
+                                <input type="text" id="inputName" required class="input-game" placeholder="ระบุชื่อ-นามสกุล">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full text-base mt-2 py-2.5">
+                            ▶ เริ่มการผจญภัย
+                        </button>
+                    </form>
+
+                    <div class="flex flex-wrap gap-2 justify-center md:justify-start">
+                        <button type="button" onclick="UI.showHowToPlay()" class="btn btn-outline py-1.5 px-3">📖 วิธีเล่น</button>
+                        <button type="button" id="btnToggleSound" class="btn btn-outline py-1.5 px-3">🔊 เปิดเสียง</button>
+                    </div>
+                </div>
+
+                <!-- Right: Leaderboard -->
+                <div class="flex-1 glass-card p-4 flex flex-col">
+                    <h2 class="text-base font-bold mb-3 flex items-center gap-2 pb-2" style="border-bottom: 1px solid #343a40;">
+                        🏆 Leaderboard 
+                    </h2>
+                    <div id="leaderboardContent" class="flex-1 overflow-y-auto max-h-[250px] md:max-h-[350px] space-y-2 pr-1">
+                        <div class="text-center py-6 text-sm font-medium" style="color: #adb5bd !important;">กำลังเชื่อมต่อระบบ... ⏳</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Modal (Glassmorphism theme) -->
+        <div id="questionModal" class="absolute inset-0 flex items-center justify-center p-3 bg-black/40 backdrop-blur-sm z-40 hidden pointer-events-auto">
+            <div class="glass-panel w-full max-w-2xl flex flex-col md:flex-row overflow-hidden shadow-2xl border-2 border-white/80">
+                <div class="flex-1 p-4 md:p-5 bg-white/40 flex flex-col justify-center relative border-r-2 border-white/50">
+                    <div class="absolute top-3 left-3 bg-white shadow-sm px-2 py-0.5 rounded-full text-[10px] font-bold text-green-700 border border-green-200">
+                        🏰 ประตูที่ <span id="qIndexText">1/20</span>
+                    </div>
+                    <div class="text-3xl mb-2 mt-4 md:mt-0">🧩</div>
+                    <h3 id="qText" class="text-sm md:text-base font-bold leading-relaxed text-gray-800 drop-shadow-sm"></h3>
+                </div>
+                <div class="flex-1 p-4 md:p-5 bg-white/60 flex flex-col justify-center overflow-y-auto relative">
+                    <h4 class="text-xs font-bold text-gray-600 mb-2 flex items-center gap-1.5"><span>⚡</span> เลือกคำตอบที่ถูกต้องที่สุด:</h4>
+                    <div id="qChoices" class="flex flex-col gap-2"></div>
+                    <div id="qExplanation" class="hidden mt-4 p-3 rounded-xl bg-white shadow-inner border-l-4 border-orange-400">
+                        <p class="font-bold text-xs text-orange-600 mb-1 flex items-center gap-1.5">💡 วิธีคิดและคำอธิบาย:</p>
+                        <p id="qExpText" class="text-gray-700 text-[11px] font-medium leading-relaxed"></p>
+                        <button id="btnContinue" class="mt-3 w-full btn btn-primary py-2 text-sm shadow-md">เดินทางต่อ 🏃‍♂️</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- End Modal -->
+        <div id="endModal" class="absolute inset-0 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm z-50 hidden pointer-events-auto">
+            <div class="glass-panel p-5 max-w-xs w-full text-center relative overflow-hidden border-2 border-white">
+                <div id="endIcon" class="text-4xl mb-2 drop-shadow-lg">🎉</div>
+                <h2 id="endTitle" class="text-lg font-extrabold mb-2 text-gray-800">สรุปผลการผจญภัย</h2>
+                <div class="glass-card p-3 text-left space-y-2 mb-4 mt-2">
+                    <div class="flex justify-between items-center text-sm font-bold text-orange-600 border-b-2 border-white pb-1.5">
+                        <span>🎯 คะแนนรวม:</span> <span id="endScore" class="text-base">0/20</span>
+                    </div>
+                    <div class="flex justify-between text-xs font-medium text-gray-700"><span>👤 นักสำรวจ:</span> <span id="endName" class="font-bold">-</span></div>
+                    <div class="flex justify-between text-xs font-medium text-gray-700"><span>✅ ตอบถูก:</span> <span id="endCorrect" class="text-green-600 font-bold">0</span></div>
+                    <div class="flex justify-between text-xs font-medium text-gray-700"><span>❌ ตอบผิด:</span> <span id="endWrong" class="text-red-500 font-bold">0</span></div>
+                    <div class="flex justify-between text-xs font-medium text-gray-700"><span>⏱️ เวลา:</span> <span id="endTime" class="font-bold">00:00</span></div>
+                </div>
+                <div id="savingStatus" class="text-[10px] text-gray-600 mb-3 font-bold flex justify-center items-center gap-1.5">⏳ กำลังบันทึกข้อมูล...</div>
+                <button onclick="location.reload()" class="w-full btn btn-primary py-2 shadow-lg text-sm">🏠 กลับสู่หน้าเมนูหลัก</button>
+            </div>
+        </div>
+
+        <!-- How To Play Modal -->
+        <div id="howToModal" class="absolute inset-0 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm z-50 hidden pointer-events-auto" onclick="if(event.target === this) UI.hideHowToPlay()">
+            <div class="glass-panel p-5 max-w-sm w-full">
+                <div class="flex justify-between items-center mb-3 border-b-2 border-white pb-2">
+                    <h2 class="text-base font-bold text-gray-800">📖 วิธีการเล่น</h2>
+                    <button onclick="UI.hideHowToPlay()" class="text-gray-500 hover:text-red-500 font-bold bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm">✕</button>
+                </div>
+                <div class="space-y-2 text-gray-700 font-medium text-xs">
+                    <p class="font-bold text-blue-600">👾 โหมด 2D:</p>
+                    <p>⌨️ <span class="bg-white px-1 rounded border">A</span> <span class="bg-white px-1 rounded border">D</span> เดินซ้าย/ขวา, <span class="bg-white px-1 rounded border">Space</span> กระโดด</p>
+                    <p class="mt-2 font-bold text-blue-600">🧊 โหมด 3D:</p>
+                    <p>⌨️ <span class="bg-white px-1 rounded border">W</span> <span class="bg-white px-1 rounded border">S</span> <span class="bg-white px-1 rounded border">A</span> <span class="bg-white px-1 rounded border">D</span> หรือลูกศรเพื่อเดิน, <span class="bg-white px-1 rounded border">Space</span> กระโดด</p>
+                    <div class="h-px bg-gray-300 w-full my-2"></div>
+                    <ul class="space-y-1.5">
+                        <li>🏃‍♂️ วิ่งฝ่าอุปสรรคและเหวในอาณาจักร</li>
+                        <li>🏰 ชนกล่อง/ประตูคำถาม เพื่อตอบคำถามคณิตศาสตร์ (20 ข้อ)</li>
+                        <li>✅ ตอบถูก +1 คะแนน, ตอบผิดมีเฉลยไม่หักคะแนน</li>
+                        <li>❤️ ระวังตกเหว! เสียหัวใจ 1 ดวง หากหมดเกมจะจบลง</li>
+                    </ul>
+                </div>
+                <button onclick="UI.hideHowToPlay()" class="mt-4 w-full btn btn-primary py-2 text-sm">เข้าใจแล้ว เริ่มลุยเลย 🌟</button>
+            </div>
+        </div>
+
+        <!-- Mobile Controls (D-Pad style for 2D & 3D) -->
+        <div id="mobileControls" class="absolute inset-0 pointer-events-none hidden z-30 flex justify-between items-end p-4 pb-8 md:hidden">
+            <!-- Left: D-Pad -->
+            <div class="relative w-36 h-36 pointer-events-auto">
+                <button id="btnUp" class="mobile-btn absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 hidden" style="width: 50px; height: 50px;">▲</button>
+                <button id="btnLeft" class="mobile-btn absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12" style="width: 50px; height: 50px;">◀</button>
+                <button id="btnRight" class="mobile-btn absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12" style="width: 50px; height: 50px;">▶</button>
+                <button id="btnDown" class="mobile-btn absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 hidden" style="width: 50px; height: 50px;">▼</button>
+            </div>
+            <!-- Right: Action -->
+            <div class="pointer-events-auto pb-4 pr-2">
+                <button id="btnJump" class="mobile-btn w-16 h-16 rounded-full bg-white/60 border-2 border-white/80 shadow-lg" style="font-size: 1.5rem; width: 65px; height: 65px;">⤴</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------------------------------------------------
+        // Data Management (Google Sheet Cloud Database)
+        // ---------------------------------------------------
+        const DataManager = {
+            // *** สำคัญมาก: นำ URL ที่ได้จากการ Deploy Web App ของ Apps Script มาวางแทนที่ข้อความนี้ ***
+            CANVA_SHEET_API_URL: "YOUR_WEB_APP_URL_HERE", 
+            LOCAL_STORAGE_KEY: "real_number_adventure_db_nature",
+            
+            initLocalMockData() {
+                if (!localStorage.getItem(this.LOCAL_STORAGE_KEY)) {
+                    const mock = [
+                        { name: "ระบบกำลังทำงานแบบออฟไลน์", no: 0, score: 0, time: 0, date: new Date().toISOString() }
+                    ];
+                    localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(mock));
+                }
+            },
+            
+            async getLeaderboard() {
+                this.initLocalMockData();
+                try {
+                    // แจ้งเตือนหากยังไม่ได้ใส่ Web App URL
+                    if (this.CANVA_SHEET_API_URL === "YOUR_WEB_APP_URL_HERE" || this.CANVA_SHEET_API_URL === "") {
+                        throw new Error("API Not Configured - กำลังใช้ข้อมูล Local");
+                    }
+                    
+                    const response = await fetch(this.CANVA_SHEET_API_URL + "?action=getLeaderboard");
+                    if (!response.ok) throw new Error("Network Error");
+                    return await response.json();
+                } catch (error) {
+                    console.warn(error.message);
+                    let data = JSON.parse(localStorage.getItem(this.LOCAL_STORAGE_KEY) || "[]");
+                    return data.sort((a, b) => b.score - a.score || a.time - b.time);
+                }
+            },
+            
+            async saveResult(data) {
+                try {
+                    // เซฟลง Local ไว้เป็น Backup เสมอ
+                    let localData = JSON.parse(localStorage.getItem(this.LOCAL_STORAGE_KEY) || "[]");
+                    localData.push(data);
+                    localData.sort((a, b) => b.score - a.score || a.time - b.time);
+                    localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(localData.slice(0, 50)));
+                    
+                    if (this.CANVA_SHEET_API_URL === "YOUR_WEB_APP_URL_HERE" || this.CANVA_SHEET_API_URL === "") {
+                        return { success: true, mode: 'local' };
+                    }
+                    
+                    // ใช้ text/plain เพื่อป้องกันปัญหา CORS Preflight OPTIONS Request บน Apps Script
+                    const response = await fetch(this.CANVA_SHEET_API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    return result;
+                } catch (error) { 
+                    console.error("Save Error:", error);
+                    return { success: true, mode: 'local' }; 
+                }
+            }
+        };
+
+        // ---------------------------------------------------
+        // Question Bank
+        // ---------------------------------------------------
+        const QuestionBank = [
+            { q: "ข้อใดเป็น 'จำนวนตรรกยะ' ?", c: ["0.333...", "π", "√2", "2.121121112..."], a: 0, exp: "0.333... เป็นทศนิยมซ้ำ เขียนในรูปเศษส่วนได้ จึงเป็นจำนวนตรรกยะ" },
+            { q: "ข้อใดเป็น 'จำนวนอตรรกยะ' ?", c: ["√3", "√4", "-5", "22/7"], a: 0, exp: "√3 ถอดรากไม่ได้ เป็นทศนิยมไม่ซ้ำไม่รู้จบ" },
+            { q: "รากที่สองของ 144 คือ?", c: ["12 และ -12", "12", "-12", "144"], a: 0, exp: "รากที่สองของจำนวนบวกมี 2 ค่า คือบวกและลบ" },
+            { q: "จงหาค่าของ √49", c: ["7", "7 และ -7", "-7", "49"], a: 0, exp: "เครื่องหมาย √ หมายถึงกรณฑ์ที่สองที่เป็นบวกเท่านั้น" },
+            { q: "จงหาค่าของ ∛-27", c: ["-3", "3", "-9", "หาค่าไม่ได้"], a: 0, exp: "(-3) × (-3) × (-3) = -27" },
+            { q: "ข้อใดกล่าวถูกต้องเกี่ยวกับ '0' ?", c: ["เป็นจำนวนตรรกยะ", "เป็นจำนวนอตรรกยะ", "ไม่เป็นจำนวนจริง", "เป็นจำนวนนับ"], a: 0, exp: "0 เขียนเป็นเศษส่วนได้ เช่น 0/1 จึงเป็นจำนวนตรรกยะ" },
+            { q: "เซตข้อใดเป็น 'จำนวนเต็ม' ทั้งหมด?", c: ["0, -1, √9", "1/2, 2, 3", "π, √2, √3", "0.5, -5, 10"], a: 0, exp: "√9 = 3 ซึ่งเป็นจำนวนเต็ม" },
+            { q: "'จำนวนจริงทุกจำนวนเป็นจำนวนตรรกยะ' จริงหรือไม่?", c: ["เท็จ", "จริง", "จริงเฉพาะบวก", "จริงเฉพาะเต็ม"], a: 0, exp: "เท็จ เพราะระบบจำนวนจริงรวมถึงจำนวนอตรรกยะด้วย" },
+            { q: "ค่าประมาณของ √2 ทศนิยม 2 ตำแหน่ง?", c: ["1.41", "1.73", "1.14", "2.00"], a: 0, exp: "√2 ≈ 1.414..." },
+            { q: "ทำให้เป็นรูปอย่างง่าย: √8", c: ["2√2", "4", "2", "4√2"], a: 0, exp: "√8 = √(4 × 2) = 2√2" },
+            { q: "ผลลัพธ์ของ √12 + √27", c: ["5√3", "√39", "3√5", "6√3"], a: 0, exp: "2√3 + 3√3 = 5√3" },
+            { q: "ข้อใด 'ไม่เป็น' จำนวนจริง?", c: ["√-4", "0", "-100", "∛-8"], a: 0, exp: "รากที่สองของจำนวนลบหาค่าไม่ได้ในระบบจำนวนจริง" },
+            { q: "ผลลัพธ์ของ ∛8 × ∛27", c: ["6", "5", "∛35", "36"], a: 0, exp: "2 × 3 = 6" },
+            { q: "ถ้า x² = 64 แล้ว x มีค่าเท่าใด?", c: ["8 และ -8", "8", "-8", "32"], a: 0, exp: "สมการกำลังสองมี 2 คำตอบ" },
+            { q: "ทศนิยมใดแปลงเป็นเศษส่วนได้?", c: ["1.2525...", "π", "√5", "1.010010001..."], a: 0, exp: "ทศนิยมซ้ำเป็นจำนวนตรรกยะ แปลงเป็นเศษส่วนได้" },
+            { q: "ผลลัพธ์ของ √50 - √18", c: ["2√2", "√32", "4√2", "8"], a: 0, exp: "5√2 - 3√2 = 2√2" },
+            { q: "ค่าของ √(-5)²", c: ["5", "-5", "25", "-25"], a: 0, exp: "√(x²) = |x| ดังนั้น √25 = 5" },
+            { q: "ถ้า ∛x = 4 แล้ว x มีค่าเท่าใด?", c: ["64", "12", "16", "2"], a: 0, exp: "4³ = 64" },
+            { q: "จำนวนใดอยู่ระหว่าง √9 และ √16 ?", c: ["3.5", "2.5", "4.5", "5"], a: 0, exp: "√9=3 และ √16=4" },
+            { q: "ผลลัพธ์ของ (√7)²", c: ["7", "49", "√49", "14"], a: 0, exp: "(√a)² = a เมื่อ a ≥ 0" }
+        ];
+
+        function getQuestions() {
+            let arr = [...QuestionBank].sort(() => Math.random() - 0.5).slice(0, 20);
+            return arr.map(q => {
+                const correctText = q.c[q.a];
+                const shuffled = [...q.c].sort(() => Math.random() - 0.5);
+                return { ...q, c: shuffled, a: shuffled.indexOf(correctText) };
+            });
+        }
+
+        // ---------------------------------------------------
+        // Audio System
+        // ---------------------------------------------------
+        const AudioSys = {
+            ctx: null, enabled: true,
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            toggle() {
+                this.enabled = !this.enabled;
+                const btn = document.getElementById('btnToggleSound');
+                btn.innerHTML = this.enabled ? '🔊 เปิดเสียง' : '🔇 ปิดเสียง';
+            },
+            playTone(freq, type, duration, vol=0.1) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + duration);
+            },
+            playJump() { this.playTone(400, 'sine', 0.2, 0.1); setTimeout(()=>this.playTone(600, 'sine', 0.1, 0.1), 50); },
+            playCoin() { this.playTone(900, 'square', 0.1, 0.05); setTimeout(()=>this.playTone(1200, 'square', 0.15, 0.05), 100); },
+            playCorrect() { this.playTone(600, 'triangle', 0.1, 0.1); setTimeout(()=>this.playTone(800, 'triangle', 0.2, 0.15), 100); },
+            playWrong() { this.playTone(300, 'sawtooth', 0.3, 0.1); setTimeout(()=>this.playTone(250, 'sawtooth', 0.4, 0.1), 150); },
+            playHurt() { this.playTone(150, 'sawtooth', 0.4, 0.2); },
+            playWin() { [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => { setTimeout(() => this.playTone(f, 'square', 0.3, 0.1), i * 150); }); }
+        };
+
+        const App = {
+            state: 'menu', mode: '2D', timerInterval: null,
+            playerData: { no: '', name: '', avatar: '🤠', avatarType: 'emoji' },
+            score: 0, hearts: 3, timeElapsed: 0, correctAnswers: 0, wrongAnswers: 0,
+            questions: [], questionIndex: 0,
+
+            init() {
+                // Mode Selection
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+                        e.currentTarget.classList.add('selected');
+                        this.mode = e.currentTarget.getAttribute('data-mode');
+                    });
+                });
+
+                // Avatar Selection
+                document.querySelectorAll('.avatar-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.avatar-btn').forEach(b => b.classList.remove('selected'));
+                        e.currentTarget.classList.add('selected');
+                        this.playerData.avatar = e.currentTarget.getAttribute('data-avatar');
+                        this.playerData.avatarType = e.currentTarget.getAttribute('data-type') || "emoji";
+                    });
+                });
+
+                document.getElementById('playerForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    AudioSys.init();
+                    this.playerData.no = document.getElementById('inputNo').value;
+                    this.playerData.name = document.getElementById('inputName').value;
+                    this.startGame();
+                });
+
+                document.getElementById('btnToggleSound').addEventListener('click', () => AudioSys.toggle());
+                UI.showStartScreen();
+            },
+
+            startGame() {
+                this.score = 0; this.hearts = 3; this.timeElapsed = 0;
+                this.correctAnswers = 0; this.wrongAnswers = 0; this.questionIndex = 0;
+                this.questions = getQuestions();
+                
+                UI.hideStartScreen();
+                UI.updateHUD();
+                
+                if(this.timerInterval) clearInterval(this.timerInterval);
+                this.timerInterval = setInterval(() => {
+                    if(this.state === 'playing') { this.timeElapsed++; UI.updateHUD(); }
+                }, 1000);
+                
+                this.state = 'playing';
+
+                // Display Correct Engine
+                if (this.mode === '2D') {
+                    document.getElementById('gameCanvas').style.display = 'block';
+                    document.getElementById('game3DContainer').style.display = 'none';
+                    Game2D.start();
+                } else {
+                    document.getElementById('gameCanvas').style.display = 'none';
+                    document.getElementById('game3DContainer').style.display = 'block';
+                    Game3D.start();
+                }
+            },
+
+            hurt() {
+                this.hearts--;
+                AudioSys.playHurt();
+                UI.updateHUD();
+                if (this.hearts <= 0) {
+                    this.state = 'ended';
+                    UI.showEndGame(false);
+                }
+            }
+        };
+
+        const UI = {
+            formatTime: (secs) => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${(secs % 60).toString().padStart(2, '0')}`,
+            updateHUD() {
+                document.getElementById('hudName').innerText = App.playerData.name;
+                document.getElementById('hudNo').innerText = App.playerData.no;
+                document.getElementById('hudMode').innerText = App.mode;
+                
+                const avatarEl = document.getElementById('hudAvatar');
+                if (App.playerData.avatarType === 'image') avatarEl.innerHTML = `<img src="${App.playerData.avatar}" class="w-full h-full object-contain rounded-sm">`;
+                else avatarEl.innerText = App.playerData.avatar;
+                
+                document.getElementById('hudScore').innerText = App.score;
+                document.getElementById('hudHearts').innerText = Array(3).fill(0).map((_,i) => i < App.hearts ? '❤️' : '🖤').join('');
+                document.getElementById('hudTime').innerText = this.formatTime(App.timeElapsed);
+                document.getElementById('hudProgress').innerText = App.questionIndex;
+            },
+            showStartScreen() {
+                document.getElementById('startScreen').classList.remove('hidden');
+                document.getElementById('hud').classList.add('hidden');
+                this.loadLeaderboard();
+            },
+            hideStartScreen() {
+                document.getElementById('startScreen').classList.add('hidden');
+                document.getElementById('hud').classList.remove('hidden');
+                // Mobile controls logic
+                if ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth <= 768) {
+                    document.getElementById('mobileControls').classList.remove('hidden');
+                    if(App.mode === '3D') {
+                        document.getElementById('btnUp').classList.remove('hidden');
+                        document.getElementById('btnDown').classList.remove('hidden');
+                    } else {
+                        document.getElementById('btnUp').classList.add('hidden');
+                        document.getElementById('btnDown').classList.add('hidden');
+                    }
+                }
+            },
+            showHowToPlay() { document.getElementById('howToModal').classList.remove('hidden'); },
+            hideHowToPlay() { document.getElementById('howToModal').classList.add('hidden'); },
+            
+            async loadLeaderboard() {
+                const lbDiv = document.getElementById('leaderboardContent');
+                const data = await DataManager.getLeaderboard();
+                lbDiv.innerHTML = '';
+                
+                if(data.length === 0) return lbDiv.innerHTML = '<div class="text-center py-4 font-medium text-sm text-gray-500">ยังไม่มีข้อมูลในระบบ อาณาจักรยังรอผู้กล้า!</div>';
+                
+                data.slice(0, 10).forEach((item, index) => {
+                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `<span class="lb-item-sub text-xs">${index+1}.</span>`;
+                    lbDiv.innerHTML += `
+                        <div class="flex justify-between items-center lb-item p-2 transition mb-1">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 text-center font-bold text-base">${medal}</div>
+                                <div>
+                                    <div class="font-bold lb-item-name truncate max-w-[120px] text-xs">${item.name}</div>
+                                    <div class="text-[10px] lb-item-sub">เลขที่ ${item.no}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold lb-item-score text-xs">${item.score} <span class="text-[9px] font-normal">คะแนน</span></div>
+                                <div class="text-[10px] lb-item-sub">⏱️ ${this.formatTime(item.time || 0)}</div>
+                            </div>
+                        </div>`;
+                });
+            },
+            
+            triggerQuestion(qNum, onContinue) {
+                App.state = 'paused';
+                const qData = App.questions[qNum - 1];
+                document.getElementById('questionModal').classList.remove('hidden');
+                document.getElementById('qExplanation').classList.add('hidden');
+                document.getElementById('btnContinue').classList.add('hidden');
+                document.getElementById('qIndexText').innerText = `${qNum}/20`;
+                document.getElementById('qText').innerText = qData.q;
+                
+                const container = document.getElementById('qChoices');
+                container.innerHTML = '';
+                qData.c.forEach((choice, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.innerHTML = `<span class="w-5 font-bold text-gray-400">${['ก','ข','ค','ง'][idx]}.</span> <span>${choice}</span>`;
+                    btn.onclick = () => {
+                        Array.from(container.children).forEach(b => b.disabled = true);
+                        if (idx === qData.a) {
+                            AudioSys.playCorrect(); btn.classList.add('correct'); App.score++; App.correctAnswers++;
+                        } else {
+                            AudioSys.playWrong(); btn.classList.add('wrong'); container.children[qData.a].classList.add('correct'); App.wrongAnswers++;
+                        }
+                        UI.updateHUD();
+                        document.getElementById('qExpText').innerText = qData.exp;
+                        document.getElementById('qExplanation').classList.remove('hidden');
+                        document.getElementById('btnContinue').classList.remove('hidden');
+                        document.getElementById('btnContinue').onclick = () => {
+                            document.getElementById('questionModal').classList.add('hidden');
+                            App.state = 'playing';
+                            if(onContinue) onContinue();
+                        };
+                    };
+                    container.appendChild(btn);
+                });
+            },
+            
+            async showEndGame(isWin) {
+                App.state = 'ended';
+                document.getElementById('endModal').classList.remove('hidden');
+                document.getElementById('endTitle').innerText = isWin ? '🎉 ภารกิจสำเร็จ!' : '💀 พลังชีวิตหมด';
+                document.getElementById('endIcon').innerText = isWin ? '🏆' : '💔';
+                document.getElementById('endName').innerText = App.playerData.name;
+                document.getElementById('endScore').innerText = `${App.score}/20`;
+                document.getElementById('endCorrect').innerText = App.correctAnswers;
+                document.getElementById('endWrong').innerText = App.wrongAnswers;
+                document.getElementById('endTime').innerText = this.formatTime(App.timeElapsed);
+
+                if(isWin) AudioSys.playWin();
+
+                const response = await DataManager.saveResult({
+                    ...App.playerData, 
+                    score: App.score, 
+                    correct: App.correctAnswers, 
+                    wrong: App.wrongAnswers, 
+                    time: App.timeElapsed, 
+                    date: new Date().toISOString()
+                });
+                
+                const statusEl = document.getElementById('savingStatus');
+                if (response.mode === 'cloud') { 
+                    statusEl.innerHTML = "✅ บันทึกออนไลน์สำเร็จ"; 
+                    statusEl.className = "text-[10px] text-green-600 mb-3 font-bold flex justify-center items-center gap-1.5"; 
+                } 
+                else { 
+                    statusEl.innerHTML = "⚠️ ทำงานออฟไลน์ (โปรดตรวจสอบ Web App URL)"; 
+                    statusEl.className = "text-[10px] text-orange-500 mb-3 font-bold flex justify-center items-center gap-1.5"; 
+                }
+            }
+        };
+
+        const Game2D = {
+            canvas: document.getElementById('gameCanvas'), ctx: null,
+            width: 0, height: 0, cameraX: 0,
+            playerImage: null, keys: { left: false, right: false, up: false },
+            
+            gravity: 1.2, friction: 0.8, coyoteTimer: 0,
+            platforms: [], doors: [], coins: [], bgObjects: [], player: null,
+
+            init() {
+                this.ctx = this.canvas.getContext('2d');
+                this.resize(); window.addEventListener('resize', () => this.resize());
+                window.addEventListener('keydown', e => this.handleKey(e, true));
+                window.addEventListener('keyup', e => this.handleKey(e, false));
+
+                const bindBtn = (id, key) => {
+                    const el = document.getElementById(id); if(!el) return;
+                    ['touchstart','mousedown'].forEach(ev => el.addEventListener(ev, (e) => { e.preventDefault(); this.keys[key] = true; }));
+                    ['touchend','mouseup','mouseleave'].forEach(ev => el.addEventListener(ev, (e) => { e.preventDefault(); this.keys[key] = false; }));
+                };
+                bindBtn('btnLeft', 'left'); bindBtn('btnRight', 'right'); bindBtn('btnJump', 'up');
+            },
+            resize() {
+                this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight;
+                this.width = this.canvas.width; this.height = this.canvas.height;
+            },
+            handleKey(e, isDown) {
+                if(App.state !== 'playing' || App.mode !== '2D') return;
+                if(['ArrowLeft', 'KeyA'].includes(e.code)) this.keys.left = isDown;
+                if(['ArrowRight', 'KeyD'].includes(e.code)) this.keys.right = isDown;
+                if(['ArrowUp', 'KeyW', 'Space'].includes(e.code)) { if(e.code === 'Space' && isDown) e.preventDefault(); this.keys.up = isDown; }
+            },
+            start() {
+                if(!this.ctx) this.init();
+                if (App.playerData.avatarType === 'image') {
+                    this.playerImage = new Image(); this.playerImage.src = App.playerData.avatar;
+                } else this.playerImage = null;
+
+                // Hitbox sizing: 80x80. speed: 5.5, jumpPower: -22
+                this.player = { x: 100, y: this.height - 250, w: 80, h: 80, vx: 0, vy: 0, speed: 5.5, jumpPower: -22, grounded: false, facingRight: true, frame: 0 };
+                this.cameraX = 0; this.generateLevel();
+                requestAnimationFrame(() => this.loop());
+            },
+            generateLevel() {
+                this.platforms = []; this.doors = []; this.coins = []; this.bgObjects = [];
+                const baseY = this.height - 120; let currX = 0;
+                this.platforms.push({ x: 0, y: baseY, w: 800, h: 400 }); currX += 800;
+
+                for(let i = 0; i < 20; i++) {
+                    const gap = 120 + Math.random() * 100; // Gap width bounded
+                    currX += gap;
+                    
+                    if(Math.random() > 0.4) {
+                        this.platforms.push({ x: currX - gap/2 - 40, y: baseY - 120 - Math.random()*50, w: 100, h: 25, type: 'float' });
+                        this.coins.push({ x: currX - gap/2 - 10, y: baseY - 170, w: 25, h: 25, collected: false });
+                    }
+                    const platW = 500 + Math.random() * 400;
+                    this.platforms.push({ x: currX, y: baseY, w: platW, h: 400 });
+                    if(i % 2 === 0) this.bgObjects.push({ x: currX + 150, y: baseY, type: 'tree' });
+                    this.doors.push({ x: currX + platW/2 - 40, y: baseY - 100, w: 70, h: 100, active: true, qNum: i + 1, isFinish: false });
+                    currX += platW;
+                }
+                currX += 200;
+                this.platforms.push({ x: currX, y: baseY, w: 1000, h: 400 });
+                this.doors.push({ x: currX + 300, y: baseY - 160, w: 120, h: 160, active: true, isFinish: true });
+                this.bgObjects.push({ x: currX + 500, y: baseY, type: 'castle' });
+            },
+            update() {
+                if (App.state !== 'playing' || App.mode !== '2D') return;
+
+                // Physics update
+                if (this.keys.left) { this.player.vx -= 1.0; this.player.facingRight = false; }
+                if (this.keys.right) { this.player.vx += 1.0; this.player.facingRight = true; }
+                this.player.vx *= this.friction; this.player.vy += this.gravity;  
+                if(this.player.vx > this.player.speed) this.player.vx = this.player.speed;
+                if(this.player.vx < -this.player.speed) this.player.vx = -this.player.speed;
+
+                if (this.player.grounded) this.coyoteTimer = 10; else this.coyoteTimer--;
+                if (this.keys.up && this.coyoteTimer > 0) {
+                    this.player.vy = this.player.jumpPower; this.player.grounded = false; this.coyoteTimer = 0; AudioSys.playJump();
+                }
+
+                this.player.x += this.player.vx; this.player.y += this.player.vy;
+                this.player.grounded = false; this.player.frame += Math.abs(this.player.vx) * 0.1; 
+
+                // Collisions
+                for (let p of this.platforms) {
+                    if (this.player.x < p.x + p.w && this.player.x + this.player.w > p.x && this.player.y < p.y + p.h && this.player.y + this.player.h > p.y) {
+                        if (this.player.vy > 0 && this.player.y + this.player.h - this.player.vy <= p.y + 20) {
+                            this.player.grounded = true; this.player.vy = 0; this.player.y = p.y - this.player.h;
+                        } 
+                        else if (this.player.vy < 0 && this.player.y - this.player.vy >= p.y + p.h - 15) { this.player.vy = 0; this.player.y = p.y + p.h; }
+                        else {
+                            if (this.player.vx > 0) this.player.x = p.x - this.player.w; else if (this.player.vx < 0) this.player.x = p.x + p.w;
+                            this.player.vx = 0;
+                        }
+                    }
+                }
+
+                if (this.player.y > this.height + 200) { // Fall off
+                    App.hurt(); 
+                    if(App.hearts > 0) { this.player.y = -50; this.player.x = Math.max(100, this.player.x - 500); this.player.vx = 0; this.player.vy = 0; }
+                }
+
+                // Interactions
+                for (let d of this.doors) {
+                    if (d.active && this.checkOverlap(this.player, d)) {
+                        d.active = false; this.keys = { left:false, right:false, up:false }; this.player.vx = 0;
+                        if (d.isFinish) UI.showEndGame(true);
+                        else {
+                            App.questionIndex++; UI.updateHUD();
+                            UI.triggerQuestion(d.qNum, () => { this.player.x += 20; this.canvas.focus(); });
+                        }
+                    }
+                }
+                for (let c of this.coins) {
+                    if (!c.collected && this.checkOverlap(this.player, c)) { c.collected = true; AudioSys.playCoin(); }
+                }
+
+                const targetCamX = this.player.x - this.width / 3;
+                if (targetCamX > this.cameraX || (targetCamX < this.cameraX && this.cameraX > 0)) this.cameraX += (targetCamX - this.cameraX) * 0.1;
+            },
+            checkOverlap: (r1, r2) => (r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h && r1.y + r1.h > r2.y),
+            draw() {
+                const ctx = this.ctx;
+                ctx.fillStyle = ctx.createLinearGradient(0, 0, 0, this.height);
+                ctx.fillStyle.addColorStop(0, "#bae6fd"); ctx.fillStyle.addColorStop(1, "#fef3c7"); 
+                ctx.fillRect(0, 0, this.width, this.height);
+
+                ctx.save(); ctx.translate(-this.cameraX, 0);
+
+                for(let bg of this.bgObjects) {
+                    ctx.font = bg.type === 'tree' ? "70px Arial" : "120px Arial";
+                    ctx.fillText(bg.type === 'tree' ? "🌳" : "🏰", bg.x, bg.y - 10);
+                }
+
+                for (let p of this.platforms) {
+                    ctx.fillStyle = "#8b5a2b"; ctx.fillRect(p.x, p.y, p.w, p.h);
+                    ctx.fillStyle = "#4ade80"; ctx.fillRect(p.x, p.y, p.w, Math.min(20, p.h));
+                    ctx.fillStyle = "#16a34a"; ctx.fillRect(p.x, p.y + 20, p.w, 6);
+                }
+
+                for (let c of this.coins) {
+                    if (!c.collected) {
+                        ctx.save(); ctx.translate(c.x + c.w/2, c.y + c.h/2 + Math.sin(Date.now() / 200) * 4); ctx.rotate(Date.now() / 1500);
+                        ctx.font = "20px Arial"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText("💎", 0, 0); ctx.restore();
+                    }
+                }
+
+                for (let d of this.doors) {
+                    if (d.active) {
+                        if (d.isFinish) {
+                            ctx.fillStyle = "rgba(255, 255, 255, 0.4)"; ctx.fillRect(d.x, d.y, d.w, d.h);
+                            ctx.strokeStyle = "#fb923c"; ctx.lineWidth = 4; ctx.strokeRect(d.x, d.y, d.w, d.h);
+                            ctx.fillStyle = '#fb923c'; ctx.font = 'bold 20px var(--font-family)'; ctx.textAlign = 'center'; ctx.fillText('🏁 FINISH', d.x + d.w/2, d.y - 15);
+                        } else {
+                            ctx.fillStyle = "#a16207"; ctx.beginPath(); ctx.roundRect(d.x, d.y, d.w, d.h, [8, 8, 0, 0]); ctx.fill();
+                            ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(Math.sin(Date.now() / 300)) * 0.5 + 0.2})`; ctx.fillRect(d.x + 6, d.y + 6, d.w - 12, d.h - 12);
+                            ctx.fillStyle = '#333'; ctx.font = 'bold 28px var(--font-family)'; ctx.textAlign = 'center'; ctx.fillText('?', d.x + d.w/2, d.y + d.h/2 + 10);
+                            ctx.fillStyle = 'white'; ctx.font = 'bold 14px var(--font-family)'; ctx.fillText(`Q.${d.qNum}`, d.x + d.w/2, d.y - 10);
+                        }
+                    }
+                }
+
+                if (this.player && App.state !== 'menu') {
+                    const p = this.player; ctx.save(); ctx.translate(p.x + p.w/2, p.y + p.h/2);
+                    let scaleX = 1, scaleY = 1;
+                    if(!p.grounded) { scaleX = 0.95; scaleY = 1.05; } else if (Math.abs(p.vx) > 0.5) { scaleX = 1 + Math.sin(p.frame) * 0.05; scaleY = 1 - Math.sin(p.frame) * 0.05; }
+                    if (!p.facingRight) scaleX *= -1; 
+                    ctx.scale(scaleX, scaleY);
+
+                    if (App.playerData.avatarType === 'image' && this.playerImage && this.playerImage.complete) {
+                        ctx.drawImage(this.playerImage, -p.w/2, -p.h/2, p.w, p.h);
+                    } else {
+                        // Emoji font size relative to hitbox
+                        ctx.font = `${p.h * 0.9}px var(--font-family)`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(App.playerData.avatar, 0, 5); 
+                    }
+                    ctx.restore();
+                }
+                ctx.restore();
+            },
+            loop() {
+                if(App.mode === '2D' && App.state !== 'menu') { this.update(); this.draw(); }
+                if(App.mode === '2D') requestAnimationFrame(() => this.loop());
+            }
+        };
+
+        const Game3D = {
+            container: document.getElementById('game3DContainer'),
+            scene: null, camera: null, renderer: null, player: null,
+            keys: { up: false, down: false, left: false, right: false, space: false },
+            playerVy: 0, gravity: 0.8, jumpPower: 12, speed: 2.0,
+            qBlocks: [], isSetup: false,
+            
+            enemies: [], invulnerableTimer: 0,
+
+            init() {
+                if(this.isSetup) return;
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x87CEEB); 
+                
+                this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.container.appendChild(this.renderer.domElement);
+
+                // Lights
+                const ambient = new THREE.AmbientLight(0xffffff, 0.7); this.scene.add(ambient);
+                const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                dirLight.position.set(100, 200, 50); dirLight.castShadow = true;
+                dirLight.shadow.camera.left = -200; dirLight.shadow.camera.right = 200;
+                dirLight.shadow.camera.top = 200; dirLight.shadow.camera.bottom = -200;
+                this.scene.add(dirLight);
+
+                // Ground
+                const groundGeo = new THREE.PlaneGeometry(600, 3500);
+                const groundMat = new THREE.MeshLambertMaterial({ color: 0x55dd55 });
+                const ground = new THREE.Mesh(groundGeo, groundMat);
+                ground.rotation.x = -Math.PI / 2;
+                ground.position.z = -1500;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+
+                window.addEventListener('resize', () => {
+                    if(App.mode !== '3D') return;
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                window.addEventListener('keydown', e => this.handleKey(e, true));
+                window.addEventListener('keyup', e => this.handleKey(e, false));
+
+                const bindBtn = (id, key) => {
+                    const el = document.getElementById(id); if(!el) return;
+                    ['touchstart','mousedown'].forEach(ev => el.addEventListener(ev, (e) => { e.preventDefault(); this.keys[key] = true; }));
+                    ['touchend','mouseup','mouseleave'].forEach(ev => el.addEventListener(ev, (e) => { e.preventDefault(); this.keys[key] = false; }));
+                };
+                bindBtn('btnUp', 'up'); bindBtn('btnDown', 'down'); bindBtn('btnLeft', 'left'); bindBtn('btnRight', 'right'); bindBtn('btnJump', 'space');
+
+                this.isSetup = true;
+            },
+            handleKey(e, isDown) {
+                if(App.state !== 'playing' || App.mode !== '3D') return;
+                if(['ArrowUp', 'KeyW'].includes(e.code)) this.keys.up = isDown;
+                if(['ArrowDown', 'KeyS'].includes(e.code)) this.keys.down = isDown;
+                if(['ArrowLeft', 'KeyA'].includes(e.code)) this.keys.left = isDown;
+                if(['ArrowRight', 'KeyD'].includes(e.code)) this.keys.right = isDown;
+                if(e.code === 'Space') { if(isDown) e.preventDefault(); this.keys.space = isDown; }
+            },
+            
+            createPlayerAvatar() {
+                const texLoader = new THREE.TextureLoader();
+                texLoader.setCrossOrigin('anonymous');
+                
+                let textureUrl = "";
+                if (App.playerData.avatarType === 'image') {
+                    textureUrl = App.playerData.avatar;
+                } else {
+                    // Fallback for Emoji: Create simple canvas texture
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 64; canvas.height = 64;
+                    const ctx = canvas.getContext('2d');
+                    ctx.font = '50px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(App.playerData.avatar, 32, 36);
+                    textureUrl = canvas.toDataURL();
+                }
+
+                const tex = texLoader.load(textureUrl);
+                const mat = new THREE.SpriteMaterial({ map: tex, color: 0xffffff, transparent: true });
+                this.player = new THREE.Sprite(mat);
+                this.player.scale.set(15, 20, 1);
+                this.player.position.set(0, 10, 0); 
+                
+                // Shadow Mesh
+                const shadowGeo = new THREE.BoxGeometry(8, 2, 8);
+                const shadowMat = new THREE.MeshBasicMaterial({visible: false});
+                const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+                shadowMesh.castShadow = true;
+                this.player.add(shadowMesh);
+
+                this.scene.add(this.player);
+            },
+
+            generateWorld() {
+                this.qBlocks.forEach(b => this.scene.remove(b.mesh));
+                this.enemies.forEach(e => this.scene.remove(e.mesh));
+                this.qBlocks = [];
+                this.enemies = [];
+                
+                // Trees
+                for(let i=0; i<100; i++) {
+                    const trunkGeo = new THREE.BoxGeometry(4, 10, 4);
+                    const trunkMat = new THREE.MeshLambertMaterial({color: 0x8B4513});
+                    const leavesGeo = new THREE.BoxGeometry(16, 16, 16);
+                    const leavesMat = new THREE.MeshLambertMaterial({color: 0x228B22});
+                    const tree = new THREE.Group();
+                    const trunk = new THREE.Mesh(trunkGeo, trunkMat); trunk.position.y = 5; trunk.castShadow = true;
+                    const leaves = new THREE.Mesh(leavesGeo, leavesMat); leaves.position.y = 15; leaves.castShadow = true;
+                    tree.add(trunk); tree.add(leaves);
+                    
+                    let tx = (Math.random() - 0.5) * 400;
+                    if (Math.abs(tx) < 40) tx = (tx > 0 ? 1 : -1) * (40 + Math.random()*150); 
+                    tree.position.set(tx, 0, -Math.random() * 3000);
+                    this.scene.add(tree);
+                }
+
+                // Question Blocks
+                const qMat = new THREE.MeshLambertMaterial({color: 0xFFD700}); 
+                for(let i=0; i<20; i++) {
+                    const mesh = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 15), qMat);
+                    mesh.position.set((Math.random()-0.5)*150, 10, -150 - (i * 130));
+                    mesh.castShadow = true;
+                    this.scene.add(mesh);
+                    this.qBlocks.push({ mesh, active: true, qNum: i+1 });
+                }
+                
+                // Enemies
+                const enemyGeo = new THREE.BoxGeometry(10, 10, 10);
+                const enemyMat = new THREE.MeshLambertMaterial({color: 0xcc0000});
+                for(let i=0; i<15; i++) {
+                    const mesh = new THREE.Mesh(enemyGeo, enemyMat);
+                    mesh.position.set((Math.random()-0.5)*200, 5, -200 - (Math.random() * 2500));
+                    mesh.castShadow = true;
+                    this.scene.add(mesh);
+                    this.enemies.push({ mesh: mesh, active: true, speed: 0.8 + Math.random() * 0.7 });
+                }
+
+                // Finish Line Castle
+                const finishMat = new THREE.MeshLambertMaterial({color: 0xff8c00});
+                const finish = new THREE.Mesh(new THREE.BoxGeometry(60, 40, 40), finishMat);
+                finish.position.set(0, 20, -2900);
+                this.scene.add(finish);
+                this.qBlocks.push({ mesh: finish, active: true, isFinish: true });
+            },
+
+            start() {
+                this.init();
+                if(this.player) this.scene.remove(this.player);
+                this.createPlayerAvatar();
+                this.generateWorld();
+                this.player.position.set(0, 10, 0);
+                this.playerVy = 0;
+                this.invulnerableTimer = 0;
+                
+                this.camera.position.set(0, 30, 40);
+                this.camera.lookAt(this.player.position);
+                requestAnimationFrame(() => this.loop());
+            },
+            update() {
+                if(App.state !== 'playing') return;
+
+                if (this.invulnerableTimer > 0) {
+                    this.invulnerableTimer--;
+                    this.player.material.opacity = (this.invulnerableTimer % 10 < 5) ? 0.3 : 1;
+                } else {
+                    this.player.material.opacity = 1;
+                }
+
+                let moved = false;
+                if (this.keys.up) { this.player.position.z -= this.speed; moved = true; }
+                if (this.keys.down) { this.player.position.z += this.speed; moved = true; }
+                if (this.keys.left) { this.player.position.x -= this.speed; moved = true; }
+                if (this.keys.right) { this.player.position.x += this.speed; moved = true; }
+
+                if (this.player.position.x > 250) this.player.position.x = 250;
+                if (this.player.position.x < -250) this.player.position.x = -250;
+
+                if (this.keys.space && this.player.position.y <= 10.5) {
+                    this.playerVy = this.jumpPower; AudioSys.playJump();
+                }
+                this.playerVy -= this.gravity;
+                this.player.position.y += this.playerVy;
+                if (this.player.position.y < 10) { this.player.position.y = 10; this.playerVy = 0; }
+
+                if(moved && this.player.position.y === 10) {
+                    this.player.position.y = 10 + Math.abs(Math.sin(Date.now() / 150)) * 2;
+                }
+
+                this.camera.position.x += (this.player.position.x - this.camera.position.x) * 0.1;
+                const targetCamZ = this.player.position.z + 50;
+                this.camera.position.z += (targetCamZ - this.camera.position.z) * 0.1;
+                this.camera.position.y = this.player.position.y + 20; 
+                this.camera.lookAt(this.player.position.x, this.player.position.y, this.player.position.z - 20);
+
+                // Interactions
+                for(let b of this.qBlocks) {
+                    if(!b.active) continue;
+                    b.mesh.rotation.y += 0.02; 
+                    b.mesh.position.y = (b.isFinish ? 20 : 10) + Math.sin(Date.now()/300)*2;
+
+                    const dx = this.player.position.x - b.mesh.position.x;
+                    const dz = this.player.position.z - b.mesh.position.z;
+                    const dist = Math.sqrt(dx*dx + dz*dz);
+
+                    if(dist < (b.isFinish ? 40 : 15) && Math.abs(this.player.position.y - b.mesh.position.y) < 20) {
+                        b.active = false;
+                        this.keys = { up: false, down: false, left: false, right: false, space: false };
+                        if (b.isFinish) UI.showEndGame(true);
+                        else {
+                            this.scene.remove(b.mesh);
+                            App.questionIndex++; UI.updateHUD();
+                            UI.triggerQuestion(b.qNum, () => {
+                                this.player.position.z -= 10; 
+                            });
+                        }
+                    }
+                }
+                
+                // Enemies
+                for(let e of this.enemies) {
+                    if(!e.active) continue;
+                    const dx = this.player.position.x - e.mesh.position.x;
+                    const dz = this.player.position.z - e.mesh.position.z;
+                    const dist = Math.sqrt(dx*dx + dz*dz);
+                    
+                    if (dist < 150 && dist > 0) {
+                        e.mesh.position.x += (dx / dist) * e.speed;
+                        e.mesh.position.z += (dz / dist) * e.speed;
+                        e.mesh.position.y = 5 + Math.abs(Math.sin(Date.now() / 100)) * 2;
+                    }
+
+                    if (dist < 12 && Math.abs(this.player.position.y - e.mesh.position.y) < 15) {
+                        if (this.invulnerableTimer <= 0) {
+                            App.hurt();
+                            this.invulnerableTimer = 60; 
+                            e.mesh.position.x -= (dx / dist) * 30;
+                            e.mesh.position.z -= (dz / dist) * 30;
+                        }
+                    }
+                }
+            },
+            loop() {
+                if(App.mode === '3D') {
+                    if(App.state !== 'menu' && App.state !== 'paused') this.update();
+                    this.renderer.render(this.scene, this.camera);
+                    requestAnimationFrame(() => this.loop());
+                }
+            }
+        };
+
+        // Initialize Application
+        window.onload = () => App.init();
+    </script>
+</body>
+</html>
