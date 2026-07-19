@@ -1054,7 +1054,7 @@
             container: document.getElementById('game3DContainer'),
             scene: null, camera: null, renderer: null, player: null,
             keys: { up: false, down: false, left: false, right: false, space: false },
-            playerVy: 0, gravity: 0.8, jumpPower: 12, speed: 2.0,
+            playerVy: 0, gravity: 0.8, jumpPower: 12, speed: 1.2,
             qBlocks: [], isSetup: false,
             
             enemies: [], invulnerableTimer: 0,
@@ -1126,6 +1126,9 @@
 
                 const head = new THREE.Mesh(skinGeo, skinMat);
                 head.position.y = 6.5; head.castShadow = true;
+                const nose = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), skinMat);
+                nose.position.set(0, 0, 1.5);
+                head.add(nose);
                 const body = new THREE.Mesh(shirtGeo, shirtMat);
                 body.position.y = 2.5; body.castShadow = true;
                 
@@ -1268,11 +1271,28 @@
                     this.player.visible = true;
                 }
 
+                let dx = 0, dz = 0;
+                if (this.keys.up) { dz -= 1; }
+                if (this.keys.down) { dz += 1; }
+                if (this.keys.left) { dx -= 1; }
+                if (this.keys.right) { dx += 1; }
+
                 let moved = false;
-                if (this.keys.up) { this.player.position.z -= this.speed; moved = true; }
-                if (this.keys.down) { this.player.position.z += this.speed; moved = true; }
-                if (this.keys.left) { this.player.position.x -= this.speed; moved = true; }
-                if (this.keys.right) { this.player.position.x += this.speed; moved = true; }
+                if (dx !== 0 || dz !== 0) {
+                    moved = true;
+                    const length = Math.sqrt(dx*dx + dz*dz);
+                    dx = (dx / length) * this.speed;
+                    dz = (dz / length) * this.speed;
+                    
+                    this.player.position.x += dx;
+                    this.player.position.z += dz;
+                    
+                    const targetAngle = Math.atan2(dx, dz);
+                    let diff = targetAngle - this.player.rotation.y;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    this.player.rotation.y += diff * 0.2;
+                }
 
                 if (moved) {
                     const time = Date.now() * 0.01;
