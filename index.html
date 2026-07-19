@@ -507,17 +507,17 @@
         </div>
 
         <!-- Mobile Controls (D-Pad style for 2D & 3D) -->
-        <div id="mobileControls" class="absolute inset-0 pointer-events-none hidden z-30 flex justify-between items-end p-4 pb-8 md:hidden">
+        <div id="mobileControls" class="absolute inset-0 pointer-events-none hidden z-30 flex justify-between items-end p-6 pb-12 md:hidden">
             <!-- Left: D-Pad -->
-            <div class="relative w-36 h-36 pointer-events-auto">
-                <button id="btnUp" class="mobile-btn absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 hidden" style="width: 50px; height: 50px;">▲</button>
-                <button id="btnLeft" class="mobile-btn absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12" style="width: 50px; height: 50px;">◀</button>
-                <button id="btnRight" class="mobile-btn absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12" style="width: 50px; height: 50px;">▶</button>
-                <button id="btnDown" class="mobile-btn absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 hidden" style="width: 50px; height: 50px;">▼</button>
+            <div class="relative w-40 h-40 pointer-events-auto opacity-70">
+                <button id="btnUp" class="mobile-btn absolute top-0 left-1/2 -translate-x-1/2 w-14 h-14 hidden rounded-lg bg-white/90 border-2 border-gray-300 shadow-md text-2xl font-bold flex items-center justify-center">▲</button>
+                <button id="btnLeft" class="mobile-btn absolute top-1/2 left-0 -translate-y-1/2 w-14 h-14 rounded-lg bg-white/90 border-2 border-gray-300 shadow-md text-2xl font-bold flex items-center justify-center">◀</button>
+                <button id="btnRight" class="mobile-btn absolute top-1/2 right-0 -translate-y-1/2 w-14 h-14 rounded-lg bg-white/90 border-2 border-gray-300 shadow-md text-2xl font-bold flex items-center justify-center">▶</button>
+                <button id="btnDown" class="mobile-btn absolute bottom-0 left-1/2 -translate-x-1/2 w-14 h-14 hidden rounded-lg bg-white/90 border-2 border-gray-300 shadow-md text-2xl font-bold flex items-center justify-center">▼</button>
             </div>
             <!-- Right: Action -->
-            <div class="pointer-events-auto pb-4 pr-2">
-                <button id="btnJump" class="mobile-btn w-16 h-16 rounded-full bg-white/60 border-2 border-white/80 shadow-lg" style="font-size: 1.5rem; width: 65px; height: 65px;">⤴</button>
+            <div class="pointer-events-auto pb-4 pr-4 opacity-80">
+                <button id="btnJump" class="mobile-btn w-20 h-20 rounded-full bg-white/90 border-4 border-gray-300 shadow-xl text-3xl font-bold flex items-center justify-center">⤴</button>
             </div>
         </div>
     </div>
@@ -660,6 +660,13 @@
             questions: [], questionIndex: 0,
 
             init() {
+                // Prevent scrolling on game keys
+                window.addEventListener('keydown', e => {
+                    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                        if (App.state === 'playing') e.preventDefault();
+                    }
+                }, { passive: false });
+
                 // Mode Selection
                 document.querySelectorAll('.mode-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
@@ -886,8 +893,12 @@
                 bindBtn('btnLeft', 'left'); bindBtn('btnRight', 'right'); bindBtn('btnJump', 'up');
             },
             resize() {
-                this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight;
-                this.width = this.canvas.width; this.height = this.canvas.height;
+                const dpr = window.devicePixelRatio || 1;
+                this.canvas.width = window.innerWidth * dpr;
+                this.canvas.height = window.innerHeight * dpr;
+                this.ctx.scale(dpr, dpr);
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
             },
             handleKey(e, isDown) {
                 if(App.state !== 'playing' || App.mode !== '2D') return;
@@ -1054,7 +1065,7 @@
             container: document.getElementById('game3DContainer'),
             scene: null, camera: null, renderer: null, player: null,
             keys: { up: false, down: false, left: false, right: false, space: false },
-            playerVy: 0, gravity: 0.8, jumpPower: 12, speed: 1.5,
+            playerVy: 0, gravity: 0.8, jumpPower: 12, speed: 1.0,
             qBlocks: [], isSetup: false,
             
             enemies: [], invulnerableTimer: 0,
@@ -1065,7 +1076,8 @@
                 this.scene.background = new THREE.Color(0xfba377); 
                 
                 this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.renderer.setPixelRatio(window.devicePixelRatio || 1);
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 this.renderer.shadowMap.enabled = true;
                 this.container.appendChild(this.renderer.domElement);
