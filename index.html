@@ -935,7 +935,7 @@
                 this.platforms.push({ x: 0, y: baseY, w: 800, h: 400 }); currX += 800;
 
                 for(let i = 0; i < 20; i++) {
-                    const gap = 120 + Math.random() * 100; // Gap width bounded
+                    const gap = 80 + Math.random() * 50; // Reduce gap width for jumpability
                     currX += gap;
                     
                     if(Math.random() > 0.4) {
@@ -945,7 +945,7 @@
                     const platW = 500 + Math.random() * 400;
                     this.platforms.push({ x: currX, y: baseY, w: platW, h: 400 });
                     if(i % 2 === 0) this.bgObjects.push({ x: currX + 150, y: baseY, type: 'tree' });
-                    this.doors.push({ x: currX + platW/2 - 40, y: baseY - 100, w: 70, h: 100, active: true, qNum: i + 1, isFinish: false });
+                    this.doors.push({ x: currX + platW/2 - 30, y: baseY - 140, w: 60, h: 60, active: true, qNum: i + 1, isFinish: false });
                     currX += platW;
                 }
                 currX += 200;
@@ -1042,10 +1042,39 @@
                             ctx.strokeStyle = "#fb923c"; ctx.lineWidth = 4; ctx.strokeRect(d.x, d.y, d.w, d.h);
                             ctx.fillStyle = '#fb923c'; ctx.font = 'bold 20px var(--font-family)'; ctx.textAlign = 'center'; ctx.fillText('🏁 FINISH', d.x + d.w/2, d.y - 15);
                         } else {
-                            ctx.fillStyle = "#a16207"; ctx.beginPath(); ctx.roundRect(d.x, d.y, d.w, d.h, [8, 8, 0, 0]); ctx.fill();
-                            ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(Math.sin(Date.now() / 300)) * 0.5 + 0.2})`; ctx.fillRect(d.x + 6, d.y + 6, d.w - 12, d.h - 12);
-                            ctx.fillStyle = '#333'; ctx.font = 'bold 28px var(--font-family)'; ctx.textAlign = 'center'; ctx.fillText('?', d.x + d.w/2, d.y + d.h/2 + 10);
-                            ctx.fillStyle = 'white'; ctx.font = 'bold 14px var(--font-family)'; ctx.fillText(`Q.${d.qNum}`, d.x + d.w/2, d.y - 10);
+                            const hover = Math.sin(Date.now() / 250) * 8;
+                            ctx.save();
+                            ctx.translate(d.x + d.w/2, d.y + d.h/2 + hover);
+                            
+                            // Glow effect
+                            ctx.shadowColor = '#f59e0b';
+                            ctx.shadowBlur = 15;
+                            
+                            // Golden Box
+                            ctx.fillStyle = '#f59e0b';
+                            ctx.beginPath(); ctx.roundRect(-d.w/2, -d.h/2, d.w, d.h, 12); ctx.fill();
+                            
+                            // Inner highlight
+                            ctx.shadowBlur = 0; 
+                            ctx.fillStyle = '#fcd34d';
+                            ctx.beginPath(); ctx.roundRect(-d.w/2 + 4, -d.h/2 + 4, d.w - 8, d.h - 8, 8); ctx.fill();
+                            
+                            // Question Mark
+                            ctx.fillStyle = '#92400e'; 
+                            ctx.font = 'bold 36px var(--font-family)'; 
+                            ctx.textAlign = 'center'; 
+                            ctx.textBaseline = 'middle'; 
+                            ctx.fillText('?', 0, 4);
+                            
+                            // Text Q.1 above
+                            ctx.fillStyle = '#1e3a8a';
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.lineWidth = 4;
+                            ctx.font = '900 24px var(--font-family)';
+                            ctx.strokeText(`Q.${d.qNum}`, 0, -d.h/2 - 20);
+                            ctx.fillText(`Q.${d.qNum}`, 0, -d.h/2 - 20);
+                            
+                            ctx.restore();
                         }
                     }
                 }
